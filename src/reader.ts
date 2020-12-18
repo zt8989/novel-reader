@@ -118,7 +118,6 @@ export default class Reader extends Base{
   private lines: string[] = []
   private index: { next?: string, prev?: string } = { }
   private url: string = ""
-  private done?: Function
   private title: string = ""
 
   constructor(question: any, readLine: ReadLine, answers: inquirer.Answers) {
@@ -134,7 +133,6 @@ export default class Reader extends Base{
    * @return {this}
    */
   _run(cb: Function) {
-    this.done = cb;
 
     var events = observe(this.rl);
 
