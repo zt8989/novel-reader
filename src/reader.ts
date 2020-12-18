@@ -2,6 +2,12 @@ import readline, { ReadLine } from "readline";
 import fetch from 'node-fetch'
 import cheerio from 'cheerio'
 import eol from 'eol'
+import ScreenManager from "inquirer/lib/utils/screen-manager";
+import Base from "inquirer/lib/prompts/base";
+import inquirer from "inquirer";
+import observe from "inquirer/lib/utils/events";
+import cliCursor from 'cli-cursor'
+import chalk from 'chalk'
 
 const gbk = require('gbk.js')
 
@@ -95,80 +101,134 @@ async function parseNovel(url: string) {
   const doc = await fetchUrl(url)
   const content = parseContent(doc)
   const index = parseIndexChapter(doc)
-  return { index, content }
+  const title = parseTitle(doc)
+  return { index, content, title }
 }
 
-export default class Reader {
-  private rl: ReadLine;
+function parseTitle(doc: string) {
+  const $ = cheerio.load(doc, { decodeEntities: false })
+
+  return $('title').text()
+}
+
+export default class Reader extends Base{
   private count = 0
   private line = 1
   private lines: string[] = []
   private index: { next?: string, prev?: string } = { }
   private url: string = ""
   private prevLines = 0
+  private done?: Function
+  private firstRender = true
+  private title: string = ""
 
-  constructor(line?: number) {
-    this.rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    })
-    readline.emitKeypressEvents(process.stdin);
-    if (process.stdin.isTTY){
-      // @ts-ignore
-      process.stdin.setRawMode(true);
-    }
-    process.stdin.on('keypress', (c: string, k) => {
-      const key = c.toLowerCase()
-      switch (key) {
-        case 'h':
-          break
-        case 'j':
-          if(!this.isEnd()) {
-            this.count += this.line
-            this.render()
-          } else {
-            if(this.index.next){
-              if(this.index.next.startsWith("http")) {
-                this._read(this.index.next)
-              } else {
-                const urlObj = new URL(this.url)
-                this._read(urlObj.origin + this.index.next)
-              }
-            } else {
-              this.lines = ['提示:', '没有下一页了', 'thank you']
-              this.render()
-            }
-          }
-          break
-        case 'k':
-          if(this.isHead()) {
-            if(this.index.prev){
-              if(this.index.prev.startsWith("http")) {
-                this._read(this.index.prev)
-              } else {
-                const urlObj = new URL(this.url)
-                this._read(urlObj.origin + this.index.prev)
-              }
-            } else {
-              this.lines = ['提示:', '没有上一页了', 'thank you']
-              this.render()
-            }
-          } else {
-            if(this.count < this.line) {
-              this.count = 0
-            } else {
-              this.count -= this.line
-            }
-            this.render()
-          }
-          break
-        case 'l':
-          break
+  constructor(question: any, readLine: ReadLine, answers: inquirer.Answers) {
+    super(question, readLine, answers)
+
+    this.url = question.url
+    this.line = question.line
+    // readline.emitKeypressEvents(process.stdin);
+    // if (process.stdin.isTTY){
+    //   // @ts-ignore
+    //   process.stdin.setRawMode(true);
+    // }
+    // process.stdin.on('keypress', (c: string, k) => {
+    //   const key = c.toLowerCase()
+    //   switch (key) {
+    //     case 'h':
+    //       break
+    //     case 'j':
+          // if(!this.isEnd()) {
+          //   this.count += this.line
+          //   this.render()
+          // } else {
+          //   if(this.index.next){
+          //     if(this.index.next.startsWith("http")) {
+          //       this._read(this.index.next)
+          //     } else {
+          //       const urlObj = new URL(this.url)
+          //       this._read(urlObj.origin + this.index.next)
+          //     }
+          //   } else {
+          //     this.lines = ['提示:', '没有下一页了', 'thank you']
+          //     this.render()
+          //   }
+          // }
+    //       break
+    //     case 'k':
+    //       if(this.isHead()) {
+    //         if(this.index.prev){
+    //           if(this.index.prev.startsWith("http")) {
+    //             this._read(this.index.prev)
+    //           } else {
+    //             const urlObj = new URL(this.url)
+    //             this._read(urlObj.origin + this.index.prev)
+    //           }
+    //         } else {
+    //           this.lines = ['提示:', '没有上一页了', 'thank you']
+    //           this.render()
+    //         }
+    //       } else {
+    //         if(this.count < this.line) {
+    //           this.count = 0
+    //         } else {
+    //           this.count -= this.line
+    //         }
+    //         this.render()
+    //       }
+    //       break
+    //     case 'l':
+    //       break
+    //   }
+    //   return
+    // })
+  }
+
+    /**
+   * Start the Inquiry session
+   * @param  {Function} cb      Callback when prompt is done
+   * @return {this}
+   */
+
+  _run(cb: Function) {
+    this.done = cb;
+
+    var events = observe(this.rl);
+
+    events.normalizedUpKey
+      .forEach(this.onUpKey.bind(this));
+    events.normalizedDownKey
+      .forEach(this.onDownKey.bind(this));
+
+    // Init the prompt
+    cliCursor.hide();
+    // this.render();
+    this._read(this.url)
+    this.firstRender = false;
+
+    return this;
+  }
+
+  onUpKey() {
+    this.render();
+  }
+
+  onDownKey() {
+    if(!this.isEnd()) {
+      this.count += this.line
+      this.render()
+    } else {
+      if(this.index.next){
+        if(this.index.next.startsWith("http")) {
+          this._read(this.index.next)
+        } else {
+          const urlObj = new URL(this.url)
+          this._read(urlObj.origin + this.index.next)
+        }
+      } else {
+        this.lines = ['提示:', '没有下一页了', 'thank you']
+        this.render()
       }
-      return
-    })
-    if(line && line > 1) {
-      this.line = line
     }
   }
 
@@ -183,24 +243,25 @@ export default class Reader {
     parseNovel(url).then(res => {
       this.lines = eol.split(res.content)
       this.index = res.index
+      this.title = res.title
       // spinner.succeed()
       this.render()
     })
   }
 
   async render() {
-    for (let i = 0;i < this.prevLines; i++){
-      readline.clearLine(process.stdin, 0)
-      if(i < this.prevLines - 1){
-        readline.moveCursor(process.stdin, 0, -1)
-      }
-    }
-    readline.cursorTo(process.stdin, 0)
+    // for (let i = 0;i < this.prevLines; i++){
+    //   readline.clearLine(process.stdin, 0)
+    //   if(i < this.prevLines - 1){
+    //     readline.moveCursor(process.stdin, 0, -1)
+    //   }
+    // }
+    // readline.cursorTo(process.stdin, 0)
     const lines = this.lines.slice(this.count, this.count + this.line)
     this.prevLines = lines.length
     // console.log(this.prevLines)
 
-    this.rl.write(lines.join("\r\n"))
+    this.screen.render(lines.join("\n"), chalk.gray(this.title))
   }
 
   isEnd() {
