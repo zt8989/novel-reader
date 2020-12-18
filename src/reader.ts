@@ -162,8 +162,8 @@ export default class Reader extends Base{
         if(this.index.prev.startsWith("http")) {
           this._read(this.index.prev)
         } else {
-          const urlObj = new URL(this.url)
-          this._read(urlObj.origin + this.index.prev)
+          const urlObj = new URL(this.index.prev, this.url)
+          this._read(urlObj.href)
         }
       } else {
         this.title = '没有上一页了'
@@ -188,8 +188,8 @@ export default class Reader extends Base{
         if(this.index.next.startsWith("http")) {
           this._read(this.index.next)
         } else {
-          const urlObj = new URL(this.url)
-          this._read(urlObj.origin + this.index.next)
+          const urlObj = new URL(this.index.next, this.url)
+          this._read(urlObj.href)
         }
       } else {
         this.title = '没有下一页了'
