@@ -7,6 +7,7 @@ import inquirer from "inquirer";
 import observe from "inquirer/lib/utils/events";
 import cliCursor from 'cli-cursor'
 import chalk from 'chalk'
+import { filter, share } from 'rxjs/operators'
 
 const gbk = require('gbk.js')
 
@@ -119,6 +120,8 @@ export default class Reader extends Base{
   private index: { next?: string, prev?: string } = { }
   private url: string = ""
   private title: string = ""
+  private loading = true
+  private boss = false
 
   constructor(question: any, readLine: ReadLine, answers: inquirer.Answers) {
     super(question, readLine, answers)
@@ -140,10 +143,14 @@ export default class Reader extends Base{
       .forEach(this.onUpKey.bind(this));
     events.normalizedDownKey
       .forEach(this.onDownKey.bind(this));
+    
+    events.keypress.pipe(
+      filter(({ key }) => key && key.name === 'b'),
+      share()
+    ).forEach(this.onBossKey.bind(this))
 
     // Init the prompt
     cliCursor.hide();
-    // this.render();
     this._read(this.url)
 
     return this;
@@ -191,30 +198,51 @@ export default class Reader extends Base{
     }
   }
 
+  onBossKey() {
+    this.boss = !this.boss
+    if(this.boss) {
+      cliCursor.show()
+    } else {
+      cliCursor.hide()
+    }
+    this.render()
+  }
+
   private _read(url: string){
     this.url = url
     this.count = 0
+    this.loading = true
+    this.render();
     parseNovel(url).then(res => {
       this.lines = eol.split(res.content)
       this.index = res.index
       this.title = res.title
+      this.loading = false
       this.render()
     })
   }
 
   render() {
-    const lines = this.lines.slice(this.count, this.count + this.line)
-    this.screen.render(lines.join("\n") || "没有内容", Math.round((this.count + this.line) / this.lines.length) 
-      + '%\t' 
-      + (this.count + this.line)
-      + '/'
-      + this.lines.length
-      + '\t'
-      + chalk.gray(this.title))
+    if(this.boss) {
+      this.screen.render("shell>", "")
+    } else {
+      const lines = this.lines.slice(this.count, this.count + this.line)
+      const progress = Math.round(this.lines.length ? ((this.count + this.line) / this.lines.length * 100) : 100)
+      const content = lines.length > 0 ? lines.join("\n") : this.loading ? '' : "没有内容"
+      const title = this.loading ? '加载中...' : chalk.gray(this.title)
+      this.screen.render(content,
+        progress
+        + '%\t' 
+        + (this.count + this.line)
+        + '/'
+        + this.lines.length
+        + '\t'
+        + title)
+    }
   }
 
   isEnd() {
-    return (this.count + this.line) > this.lines.length
+    return (this.count + this.line) >= this.lines.length
   }
 
   isHead() {
