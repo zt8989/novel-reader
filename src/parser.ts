@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import cheerio from 'cheerio';
 const gbk = require('gbk.js');
+const debug = require('debug')('parser')
 
 function fetchUrl(url: string) {
   const headers = {
@@ -26,9 +27,13 @@ function parseContent(doc: string) {
   const $ = cheerio.load(doc, { decodeEntities: false });
 
   function parseChildren(parent: cheerio.Cheerio, size: number, slope: number, variance: number): string {
+    const children = parent.children()
+    if(children.length === 1) {
+      return parseChildren(children, size, slope, variance)
+    } 
     let maxChildren: { element: cheerio.Cheerio; size: number; slope: number; };
     const sizeList: number[] = [];
-    parent.children().each((index, element) => {
+    children.each((index, element) => {
       const wrapperElement = $(element);
       const length = wrapperElement.text().length;
       sizeList.push(length);
@@ -47,19 +52,22 @@ function parseContent(doc: string) {
         };
       }
     });
-    // console.log(sizeList)
+    // debug(sizeList)
     let avg = sizeList.reduce((sum, x) => sum + x, 0) / sizeList.length;
     // 计算方差
     let tempVariance = Math.sqrt(sizeList.reduce((sum, x) => sum + (x - avg) ** 2, 0) / sizeList.length);
-    // console.log(avg, tempVariance)
+    // debug(avg, tempVariance)
     // @ts-ignore
     if (maxChildren) {
       // console.log('---', maxChildren.element.html(), maxChildren.element[0].name)
-      if (maxChildren.slope < (slope) || (tempVariance < variance && tempVariance > 0)) {
+      debug(maxChildren.element.text(), maxChildren.slope, slope, tempVariance, variance)
+      if (maxChildren.slope < (slope) || (tempVariance < variance && tempVariance > 100)) {
         return parseChildren(maxChildren.element, maxChildren.size, maxChildren.slope, tempVariance);
       } else {
+        // console.log(parent.html())
         const temp: string[] = [];
         parent.contents().each((index, element) => {
+          // console.log(element)
           if (element.type === 'text') {
             const content = String.prototype.trim.apply(element.data);
             content && (temp.push('    ' + content));

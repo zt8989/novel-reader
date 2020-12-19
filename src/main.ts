@@ -14,13 +14,13 @@ export async function dispatch(argv: any) {
 
     const questions: any[] = []
 
-    if (config.lastUrl) {
-      questions.push({
-        type: "confirm", 
-        name: "continue",
-        message: "是否继续上次的阅读？"
-      })
-    }
+    // if (config.lastUrl) {
+    //   questions.push({
+    //     type: "confirm", 
+    //     name: "continue",
+    //     message: "是否继续上次的阅读？"
+    //   })
+    // }
 
     questions.push({
       type: "novel",

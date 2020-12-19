@@ -8,16 +8,28 @@ import chalk from 'chalk'
 import { filter, share } from 'rxjs/operators'
 import { parseNovel } from "./parser";
 import { ConfigType, writeConfigSync } from "./utils";
+import ConfirmPrompt from "inquirer/lib/prompts/confirm";
 
 function wordWrap(str: string, maxWidth: number) {
   var newLineStr = "\n"; 
-  let res = '';
-  while (str.length > maxWidth) {                 
-    res += [str.slice(0, maxWidth), newLineStr].join('');
-    str = str.slice(maxWidth);
+  const lines = str.split(newLineStr)
+  const newLines: string[] = []
+  for (const line of lines) {
+    // console.log(line.length, line)
+    if(line.length < maxWidth) {
+      newLines.push(line)
+    } else {
+      newLines.push(line.slice(0, maxWidth))
+      let rest = line.slice(maxWidth)
+      if(rest.trim()) {
+        newLines.push(rest)
+        // console.log(rest)
+      }
+    }
   }
-
-  return res + str;
+  // console.log(str)
+  // console.log(newLines)
+  return newLines
 }
 
 export default class Reader extends Base{
@@ -25,7 +37,7 @@ export default class Reader extends Base{
   private count = 0
   /** 显示行数 */
   private line = 1
-  private lineNumber = 50
+  private lineNumber = 40
   private lines: string[] = []
   private index: { next?: string, prev?: string } = { }
   private url: string = ""
@@ -33,7 +45,9 @@ export default class Reader extends Base{
   private loading = true
   private boss = false
   private config: ConfigType
+  // @ts-ignore
   private firstRun = true
+  private confirm: ConfirmPrompt
 
   constructor(question: any, readLine: ReadLine, answers: inquirer.Answers) {
     super(question, readLine, answers)
@@ -42,9 +56,23 @@ export default class Reader extends Base{
     this.line = question.line
     this.config = question.config
 
-    if (answers.continue === true && this.config.lastUrl) {
-      this.url = this.config.lastUrl
+    this.confirm = new ConfirmPrompt({
+          type: "confirm", 
+          name: "continue",
+          message: "是否继续上次的阅读？"
+        }, readLine, answers);
+
+    (this.confirm as any).onEnd = function onEnd(this: any, input: string) {
+      this.status = 'answered';
+  
+      var output = this.opt.filter(input);
+      this.render(output);
+  
+      this.done(output);
     }
+    // if (answers.continue === true && this.config.lastUrl) {
+    //   this.url = this.config.lastUrl
+    // }
   }
 
     /**
@@ -52,7 +80,7 @@ export default class Reader extends Base{
    * @param  {Function} cb      Callback when prompt is done
    * @return {this}
    */
-  _run(cb: Function) {
+  async _run(cb: Function) {
 
     var events = observe(this.rl);
 
@@ -66,12 +94,29 @@ export default class Reader extends Base{
       share()
     ).forEach(this.onBossKey.bind(this))
 
-    // Init the prompt
-    cliCursor.hide();
-    this._read(this.url).then(() => {
-      this.firstRun = false
-    })
+    events.keypress.pipe(
+      filter(({ key }) => key && key.name === 'r'),
+      share()
+    ).forEach(this.onRefresh.bind(this))
 
+    const next = (cont: Boolean = false) => {
+      if(cont && this.config.lastUrl) {
+        this.url = this.config.lastUrl
+      }
+      // Init the prompt
+      cliCursor.hide();
+      this._read(this.url).then(() => {
+        this.firstRun = false
+      })
+    }
+    if (this.firstRun && this.config.lastUrl) {
+      this.confirm.run().then((res: boolean) => {
+        // Init the prompt
+        next(res)
+      })
+    } else {
+      next()
+    }
     return this;
   }
 
@@ -127,17 +172,23 @@ export default class Reader extends Base{
     this.render()
   }
 
+  onRefresh(){
+    if(!this.loading) {
+      this._read(this.url)
+    }
+  }
+
   private _read(url: string){
     this.url = url
     this.loading = true
     this.render();
     return parseNovel(url).then(res => {
-      this.lines = wordWrap(res.content, this.lineNumber).split('\n')
-      if (this.firstRun && (this.config.lastLine || 0) < this.lines.length) {
-        this.count = this.config.lastLine || 0
-      } else {
+      this.lines = wordWrap(res.content, this.lineNumber)
+      // if (this.firstRun && (this.config.lastLine || 0) < this.lines.length) {
+      //   this.count = this.config.lastLine || 0
+      // } else {
         this.count = 0
-      }
+      // }
       this.index = res.index
       this.title = res.title
       this.loading = false
