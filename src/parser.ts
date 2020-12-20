@@ -61,16 +61,24 @@ function parseContent(doc: string) {
     if (maxChildren) {
       // console.log('---', maxChildren.element.html(), maxChildren.element[0].name)
       debug(maxChildren.element.text(), maxChildren.slope, slope, tempVariance, variance)
-      if (maxChildren.slope < (slope) || (tempVariance < variance && tempVariance > 100)) {
+      if (tempVariance > 300) {
         return parseChildren(maxChildren.element, maxChildren.size, maxChildren.slope, tempVariance);
       } else {
         // console.log(parent.html())
         const temp: string[] = [];
         parent.contents().each((index, element) => {
-          // console.log(element)
+          // if (element.type === 'tag' && ['br', 'a'].includes(element.name)) {
+          //   console.log(element)
+          // } else {
+          //   const content = String.prototype.trim.apply($(element).text());
+          //   content && (temp.push('    ' + content));
+          // }
           if (element.type === 'text') {
             const content = String.prototype.trim.apply(element.data);
             content && (temp.push('    ' + content));
+          }else if(element.type === 'tag' && ['p'].includes(element.name)) {
+            const content = String.prototype.trim.apply($(element).text());
+             content && (temp.push('    ' + content));
           }
         });
         return temp.join('\n');
@@ -85,9 +93,9 @@ function parseContent(doc: string) {
 function parseIndexChapter(doc: string) {
   const $ = cheerio.load(doc, { decodeEntities: false });
 
-  const next = $('body').find('a:contains("下一章")');
+  const next = $('body').find('a:contains("下一章")') || $('body').find('a:contains("下一页")');
   const nextHref = next.attr("href");
-  const prev = $('body').find('a:contains("上一章")');
+  const prev = $('body').find('a:contains("上一章")') || $('body').find('a:contains("上一页")');
   const prevHref = prev.attr("href");
   return { next: nextHref, prev: prevHref };
 }
