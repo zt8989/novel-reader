@@ -6,9 +6,10 @@ import observe from "inquirer/lib/utils/events";
 import cliCursor from 'cli-cursor'
 import chalk from 'chalk'
 import { filter, share } from 'rxjs/operators'
-import { parseNovel } from "./parser";
+import { getParser } from "./parser";
 import { ConfigType, writeConfigSync, wordWrap } from "./utils";
 import ConfirmPrompt from "inquirer/lib/prompts/confirm";
+import { IParser } from './parser/index';
 
 export default class Reader extends Base{
   /** 阅读滚动行数 */
@@ -26,6 +27,7 @@ export default class Reader extends Base{
   // @ts-ignore
   private firstRun = true
   private confirm: ConfirmPrompt
+  private parser: IParser
 
   constructor(question: any, readLine: ReadLine, answers: inquirer.Answers) {
     super(question, readLine, answers)
@@ -33,6 +35,7 @@ export default class Reader extends Base{
     this.url = question.url
     this.line = question.line
     this.config = question.config
+    this.parser = getParser(this.url)
 
     this.confirm = new ConfirmPrompt({
           type: "confirm", 
@@ -160,7 +163,7 @@ export default class Reader extends Base{
     this.url = url
     this.loading = true
     this.render();
-    return parseNovel(url).then(res => {
+    return this.parser.parseNovel(url).then(res => {
       this.lines = wordWrap(res.content, this.lineNumber)
       // if (this.firstRun && (this.config.lastLine || 0) < this.lines.length) {
       //   this.count = this.config.lastLine || 0
