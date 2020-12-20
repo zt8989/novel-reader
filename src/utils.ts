@@ -34,3 +34,21 @@ export async function writeConfig(config: ConfigType) {
 export function writeConfigSync(config: ConfigType) {
     return fs.writeFileSync(historyFile, JSON.stringify(config), { encoding: 'utf-8'})
 }
+
+export function wordWrap(str: string, maxWidth: number) {
+    var newLineStr = "\n"; 
+    const lines = str.split(newLineStr)
+    const newLines: string[] = []
+    for (let line of lines) {
+      if(line.length <= maxWidth) {
+        newLines.push(line)
+      } else {
+        do {
+            newLines.push(line.slice(0, maxWidth))
+            line = line.slice(maxWidth)
+        } while(line.length > 0)
+      }
+    }
+
+    return newLines
+  }

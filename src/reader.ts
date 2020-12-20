@@ -7,30 +7,8 @@ import cliCursor from 'cli-cursor'
 import chalk from 'chalk'
 import { filter, share } from 'rxjs/operators'
 import { parseNovel } from "./parser";
-import { ConfigType, writeConfigSync } from "./utils";
+import { ConfigType, writeConfigSync, wordWrap } from "./utils";
 import ConfirmPrompt from "inquirer/lib/prompts/confirm";
-
-function wordWrap(str: string, maxWidth: number) {
-  var newLineStr = "\n"; 
-  const lines = str.split(newLineStr)
-  const newLines: string[] = []
-  for (const line of lines) {
-    // console.log(line.length, line)
-    if(line.length < maxWidth) {
-      newLines.push(line)
-    } else {
-      newLines.push(line.slice(0, maxWidth))
-      let rest = line.slice(maxWidth)
-      if(rest.trim()) {
-        newLines.push(rest)
-        // console.log(rest)
-      }
-    }
-  }
-  // console.log(str)
-  // console.log(newLines)
-  return newLines
-}
 
 export default class Reader extends Base{
   /** 阅读滚动行数 */
@@ -200,19 +178,36 @@ export default class Reader extends Base{
     if(this.boss) {
       this.screen.render("shell>", "")
     } else {
-      const lines = this.lines.slice(this.count, this.count + this.line)
-      const progress = Math.round(this.lines.length ? ((this.count + this.line) / this.lines.length * 100) : 100)
+      const currentLine = this.getCurrentLine()
+      const lines = this.getRenderLines(currentLine)
+      const progress = Math.round(this.lines.length ? ((currentLine) / this.lines.length * 100) : 100)
       const content = lines.length > 0 ? lines.join("\n") : this.loading ? '' : "没有内容"
       const title = this.loading ? '加载中...' : chalk.gray(this.title)
       this.screen.render(content,
         progress
         + '%\t' 
-        + (this.count + this.line)
+        + currentLine
         + '/'
         + this.lines.length
         + '\t'
         + title)
     }
+  }
+
+  getRenderLines(currentLine: number){
+    const lines = new Array(this.line).fill(" ")
+    this.lines.slice(this.count, currentLine).forEach((value, index) => {
+      lines[index] = value
+    })
+    return lines
+  }
+
+  getCurrentLine(){
+    let currentLine = this.count + this.line
+    if(currentLine > this.lines.length) {
+      currentLine = this.lines.length
+    }
+    return currentLine
   }
 
   close(){

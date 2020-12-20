@@ -1,16 +1,15 @@
 const parser = require('../dist/parser')
+const utils = require('../dist/utils')
 
-const url = ' http://www.tycqxs.com/41_41376/7327418.html'
+const url = 'http://www.xbiquge.la/10/10489/4535761.html'
 
 parser.parseNovel(url).then(res => {
   let content = res.content
-  let str = ''
-  const limit = 50
-  while(content.length > limit) {
-    str += content.slice(0, limit)
-    console.log(content.length, content.slice(0, limit))
-    content = content.slice(limit)
+  const limit = 32
+  const lines = utils.wordWrap(content, limit)
+  for(let line of lines) {
+    console.assert(line.length <= limit, "error")
+    console.log(line.length, line)
   }
-  console.log(content)
 })
 
