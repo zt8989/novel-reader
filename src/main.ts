@@ -61,7 +61,7 @@ async function readFromBook(book: BookType, line: number = 1) {
   questions.push({
     type: "novel",
     name: "read novel",
-    url: book.lastUrl,
+    url: book ? book.lastUrl : "",
     config: {},
     book: book,
     line: line ? line : config.line ? config.line : 1
