@@ -3,7 +3,7 @@ const { RuleParser } = require('../dist/parser/rule');
 const utils = require('../dist/utils');
 
 let urls = [
-  'http://www.biquku.la/2/2718/2038029.html',
+  'https://h.630book.com/book_155359/49485601.html',
 ]
 
 ;(async () => {
@@ -19,7 +19,7 @@ let urls = [
       console.assert(line.length <= limit, "error")
       console.log(line.length, line)
     }
-    console.info(url)
+    console.info(res)
   }
 })()
 

@@ -3,17 +3,21 @@ import path from "path"
 import fs from 'fs'
 import { promisify } from 'util'
 import { newLineSplit } from "./constants"
+import mkdirp from 'mkdirp'
 
 const writeFile = promisify(fs.writeFile)
 const readFile = promisify(fs.readFile)
 
-const historyFile = path.resolve(os.homedir(), ".novel_history")
+const nvrdDir = path.resolve(os.homedir(), ".nvrd")
 
-const sourcesFile = path.resolve(os.homedir(), "novel_sources.json")
+const historyFile = path.resolve(nvrdDir, ".novel_history")
+
+const sourcesFile = path.resolve(nvrdDir, "novel_sources.json")
 
 export type ConfigType = {
     lastUrl?: string
     lastLine?: number
+    line?: number
 }
 
 export type SourceType = {
@@ -26,6 +30,7 @@ export type SourceType = {
 
 export async function readConfig(): Promise<ConfigType> {
     if (!fs.existsSync(historyFile)) {
+        await mkdirp(nvrdDir)
         await writeConfig({})
         return {}
     } else {

@@ -11,6 +11,8 @@ import { ConfigType, writeConfigSync, wordWrap } from "./utils";
 import ConfirmPrompt from "inquirer/lib/prompts/confirm";
 import { IParser } from './parser/index';
 import { newLineSplit } from "./constants";
+import { BookType, DataStoreDocumentType } from "./type";
+import db from "./db";
 
 export default class Reader extends Base{
   /** 阅读滚动行数 */
@@ -29,6 +31,7 @@ export default class Reader extends Base{
   private firstRun = true
   private confirm: ConfirmPrompt
   private parser: IParser
+  private book: BookType & DataStoreDocumentType
 
   constructor(question: any, readLine: ReadLine, answers: inquirer.Answers) {
     super(question, readLine, answers)
@@ -37,6 +40,7 @@ export default class Reader extends Base{
     this.line = question.line
     this.config = question.config
     this.parser = getParser(this.url)
+    this.book = question.book
 
     this.confirm = new ConfirmPrompt({
           type: "confirm", 
@@ -160,22 +164,25 @@ export default class Reader extends Base{
     }
   }
 
-  private _read(url: string){
+  private async _read(url: string){
     this.url = url
     this.loading = true
     this.render();
-    return this.parser.parseNovel(url).then(res => {
-      this.lines = wordWrap(res.content, this.lineNumber)
-      // if (this.firstRun && (this.config.lastLine || 0) < this.lines.length) {
-      //   this.count = this.config.lastLine || 0
-      // } else {
-        this.count = 0
-      // }
-      this.index = res.index
-      this.title = res.title
-      this.loading = false
-      this.render()
-    })
+    const res = await this.parser.parseNovel(url)
+    if (this.book) {
+      console.log("save books")
+      await db.books().update({ _id: this.book._id }, { $set: { lastUrl: url }})
+    }
+    this.lines = wordWrap(res.content, this.lineNumber)
+    // if (this.firstRun && (this.config.lastLine || 0) < this.lines.length) {
+    //   this.count = this.config.lastLine || 0
+    // } else {
+      this.count = 0
+    // }
+    this.index = res.index
+    this.title = res.title
+    this.loading = false
+    this.render()
   }
 
   render() {

@@ -87,14 +87,12 @@ export class GeneralParser extends AbstractParser {
   }
 
   protected parsePrevPage($: cheerio.Root) {
-    const prev = $('body').find('a:contains("上一章")') || $('body').find('a:contains("上一页")');
-    const prevHref = prev.attr("href");
+    const prevHref = $('body').find('a:contains("上一章")').attr("href") || $('body').find('a:contains("上一页")').attr("href");
     return prevHref
   }
 
   protected parseNextPage($: cheerio.Root){
-    const next = $('body').find('a:contains("下一章")') || $('body').find('a:contains("下一页")');
-    const nextHref = next.attr("href");
+    const nextHref = $('body').find('a:contains("下一章")').attr("href") || $('body').find('a:contains("下一页")').attr("href");
     return nextHref
   }
   

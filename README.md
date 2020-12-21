@@ -17,7 +17,13 @@
 ```bash
 npm i -g @zt8989/novel-reader
 # -n 3表示显示3行，默认为1
-nvrd read <笔趣阁章节地址> -n 3
+nvrd read <章节地址> -n 3
+
+nvrd book -l # 列出所有书本
+nvrd book -a <书名> <章节地址> #添加书本
+nvrd book -s <书名> <章节地址> #修改书名地址
+nvrd book --remove <书名> #删除书名
+nvrd book -r <书名> -n 3 #阅读书名, -n 3表示显示3行，默认为1
 ```
 
 ## 支持平台
