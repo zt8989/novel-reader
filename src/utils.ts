@@ -2,6 +2,7 @@ import os from "os"
 import path from "path"
 import fs from 'fs'
 import { promisify } from 'util'
+import { newLineSplit } from "./constants"
 
 const writeFile = promisify(fs.writeFile)
 const readFile = promisify(fs.readFile)
@@ -20,7 +21,7 @@ export type SourceType = {
     ruleBookContent: string,
     ruleNextPage: string
     rulePrevPage: string
-    ruleTitle: string
+    ruleBookTitle: string
 }
 
 export async function readConfig(): Promise<ConfigType> {
@@ -76,8 +77,7 @@ export async function writeSources(sources: SourceType[]) {
 }
 
 export function wordWrap(str: string, maxWidth: number) {
-    var newLineStr = "\n"; 
-    const lines = str.split(newLineStr)
+    const lines = str.split(newLineSplit)
     const newLines: string[] = []
     for (let line of lines) {
       if(line.length <= maxWidth) {
@@ -92,7 +92,7 @@ export function wordWrap(str: string, maxWidth: number) {
       }
     }
 
-    console.log(newLines)
+    // console.log(newLines)
 
     return newLines
   }

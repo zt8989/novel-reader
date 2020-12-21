@@ -10,6 +10,7 @@ import { getParser } from "./parser";
 import { ConfigType, writeConfigSync, wordWrap } from "./utils";
 import ConfirmPrompt from "inquirer/lib/prompts/confirm";
 import { IParser } from './parser/index';
+import { newLineSplit } from "./constants";
 
 export default class Reader extends Base{
   /** 阅读滚动行数 */
@@ -184,7 +185,7 @@ export default class Reader extends Base{
       const currentLine = this.getCurrentLine()
       const lines = this.getRenderLines(currentLine)
       const progress = Math.round(this.lines.length ? ((currentLine) / this.lines.length * 100) : 100)
-      const content = lines.length > 0 ? lines.join("\n") : this.loading ? '' : "没有内容"
+      const content = lines.length > 0 ? lines.join(newLineSplit) : this.loading ? '' : "没有内容"
       const title = this.loading ? '加载中...' : chalk.gray(this.title)
       this.screen.render(content,
         progress

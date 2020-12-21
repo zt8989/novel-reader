@@ -9,14 +9,14 @@ let urls = [
   'https://www.sikushu8.com/5/5867/919735.html',
   'https://www.2kzw.com/42/42542/38451420.html',
   'https://www.hgq26.com/107/107229/64932812.html',
-  'http://m.suixkan.com/r/218571/218572.html,'
+  'http://m.suixkan.com/r/218571/218572.html'
 ]
 
 ;(async () => {
   for (let url of urls) {
-    let res = await parser.parseNovel(url)
+    let res = await parser.getParser(url).parseNovel(url)
     let content = res.content
-    const limit = 32
+    const limit = 40
     const lines = utils.wordWrap(content, limit)
     console.assert(lines.length > 10, "解析失败")
     for(let line of lines) {
@@ -24,7 +24,6 @@ let urls = [
       console.log(line.length, line)
     }
     console.info(url)
-
   }
 })()
 

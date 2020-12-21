@@ -1,45 +1,101 @@
-function parseRule (rule: string, $: cheerio.Root): cheerio.Cheerio | string {
+import { scriptEndTag, scriptStartTag, newLineSplit } from "../constants"
+import cheerio from 'cheerio'
+
+
+function parseRule (rule: string, $: cheerio.Cheerio): cheerio.Cheerio | string {
   if (!rule) return ''
-  const [parseRules, regexRule] = rule.split('#')
-  const parseRuleList = parseRules.split(/\|\|?/)
-  for (let parseRule of parseRuleList) {
-    const rules = parseRule.split('@')
-    let ret: ReturnType<typeof simpleParser> | cheerio.Root = $
-    rules.forEach((r) => {
-      if(ret && typeof ret !== "string") {
-        ret = simpleParser(r, ret)
-      }
-    })
-    if (regexRule) {
-      const regexRules = regexRule.split('|')
-      regexRules.forEach(r => {
-        if(typeof ret === 'string'){
-          ret = parseRegex(ret, r)
+
+  if (rule.startsWith(scriptStartTag) && rule.endsWith(scriptEndTag)) {
+    return parseScript(rule.slice(scriptStartTag.length, rule.length - scriptEndTag.length), $)
+  }
+
+  const index = rule.indexOf("##")
+  const parseRules = index === - 1 ? rule : rule.slice(0, index)
+  const regexRule = index === - 1 ? "": rule.slice(index + 2)
+
+  if(parseRules.includes("||") && parseRules.includes("&&")) {
+    throw new Error("不允许同时存在&&和||规则")
+  }
+
+  if (rule.includes("&&")) {
+    const parseRuleListAnd = parseRules.split("&&")
+    const temp: string[] = []
+    for (let parseRule of parseRuleListAnd) {
+      const rules = parseRule.split('@')
+      let ret: ReturnType<typeof simpleParser> = $
+      rules.forEach((r) => {
+        if(ret && typeof ret !== "string") {
+          ret = simpleParser(r, ret)
         }
       })
+      if (regexRule) {
+        const regexRules = regexRule.split('|')
+        regexRules.forEach(r => {
+          if(typeof ret === 'string'){
+            ret = parseRegex(ret, r)
+          }
+        })
+      }
+      if(ret && ret.length > 0) {
+        temp.push(ret as any as string)
+      }
     }
-    if(ret && ret.length > 0) {
-      return ret as any as cheerio.Cheerio | string
+    return temp.join(newLineSplit)
+  } else {
+    const parseRuleListOr = parseRules.split("||")
+    for (let parseRule of parseRuleListOr) {
+      const rules = parseRule.split('@')
+      let ret: ReturnType<typeof simpleParser> = $
+      rules.forEach((r) => {
+        if(ret && typeof ret !== "string") {
+          ret = simpleParser(r, ret)
+        }
+      })
+      if (regexRule) {
+        const regexRules = regexRule.split('|')
+        regexRules.forEach(r => {
+          if(typeof ret === 'string'){
+            ret = parseRegex(ret, r)
+          }
+        })
+      }
+      if(ret && ret.length > 0) {
+        return ret as any as cheerio.Cheerio | string
+      }
     }
   }
+  
   return ''
 }
 
+function parseScript(script: string, $: cheerio.Cheerio): string {
+  const func = new Function("$", script)
+  return func($)
+}
+
 function parseRegex (text: string, regex: string) {
-  const reg = new RegExp(regex)
+  const reg = new RegExp(regex, "g")
   return text.replace(reg, '')
 }
 
-function selectorParse (rule: string[], $: cheerio.Cheerio | cheerio.Root, prefix = '') {
-  const [tag, index] = rule[1].split('!')
-  if (typeof $ === 'function') {
-    $ = $(prefix + tag)
-  } else {
-    $ = $.find(prefix + tag)
+function selectorParse (rule: string[], $: cheerio.Cheerio, prefix = '') {
+  const [tag, indexs] = rule[1].split('!')
+  let indexList: number[] = []
+  if(indexs) {
+      indexList = indexs.split(":").map(x => Number(x));
   }
-  if (index) {
+
+  $ = $.find(prefix + tag)
+  if (indexs) {
+    indexList = indexList.map(val => {
+      if(val >= 0) {
+        return val
+      } else {
+        return $.length + val
+      }
+    })
     $ = $.filter(i => {
-      return i > Number(index)
+      return !indexList.includes(i)
     })
   } else if (rule[2]) {
     $ = $.eq(Number(rule[2]))
@@ -47,7 +103,7 @@ function selectorParse (rule: string[], $: cheerio.Cheerio | cheerio.Root, prefi
   return $
 }
 
-function simpleParser (rule: string, $: cheerio.Root | cheerio.Cheerio) {
+function simpleParser (rule: string, $: cheerio.Cheerio) {
   const rules = rule.split('.')
   let ret: cheerio.Cheerio | string | undefined | null
   switch (rules[0]) {
@@ -92,21 +148,15 @@ function simpleParser (rule: string, $: cheerio.Root | cheerio.Cheerio) {
 function handleTextNodes(parent: cheerio.Cheerio){
   const temp: string[] = [];
   parent.contents().each((index, element) => {
-    // if (element.type === 'tag' && ['br', 'a'].includes(element.name)) {
-    //   console.log(element)
-    // } else {
-    //   const content = String.prototype.trim.apply($(element).text());
-    //   content && (temp.push('    ' + content));
-    // }
     if (element.type === 'text') {
       const content = String.prototype.trim.apply(element.data);
       content && (temp.push('    ' + content));
-    }else if(element.type === 'tag' && ['p'].includes(element.name)) {
-      const content = String.prototype.trim.apply($(element).text());
-       content && (temp.push('    ' + content));
+    } else if(element.type === 'tag' && ["p"].includes(element.name)) {
+      const content = String.prototype.trim.apply(cheerio(element).text());
+      content && (temp.push('    ' + content));
     }
   });
-  return temp.join('\n');
+  return temp.join(newLineSplit);
 }
 
 export {

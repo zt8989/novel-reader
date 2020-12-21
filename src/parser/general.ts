@@ -1,12 +1,13 @@
 import { AbstractParser } from './index';
 import fetch from 'node-fetch';
 import cheerio from 'cheerio';
+import { handleTextNodes } from './parser';
 const gbk = require('gbk.js');
 const debug = require('debug')('parser')
 
 export class GeneralParser extends AbstractParser {
 
-  fetchUrl(url: string) {
+  protected fetchUrl(url: string) {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
     };
@@ -26,7 +27,7 @@ export class GeneralParser extends AbstractParser {
    * 解析内容
    * @param doc
    */
-  parseContent(doc: string) {
+  protected parseContent(doc: string) {
     const $ = cheerio.load(doc, { decodeEntities: false });
   
     function parseChildren(parent: cheerio.Cheerio, size: number, slope: number, variance: number): string {
@@ -67,24 +68,7 @@ export class GeneralParser extends AbstractParser {
         if (tempVariance > 100) {
           return parseChildren(maxChildren.element, maxChildren.size, maxChildren.slope, tempVariance);
         } else {
-          // console.log(parent.html())
-          const temp: string[] = [];
-          parent.contents().each((index, element) => {
-            // if (element.type === 'tag' && ['br', 'a'].includes(element.name)) {
-            //   console.log(element)
-            // } else {
-            //   const content = String.prototype.trim.apply($(element).text());
-            //   content && (temp.push('    ' + content));
-            // }
-            if (element.type === 'text') {
-              const content = String.prototype.trim.apply(element.data);
-              content && (temp.push('    ' + content));
-            }else if(element.type === 'tag' && ['p'].includes(element.name)) {
-              const content = String.prototype.trim.apply($(element).text());
-               content && (temp.push('    ' + content));
-            }
-          });
-          return temp.join('\n');
+         return handleTextNodes(parent)
         }
       } else {
         return "";
@@ -94,17 +78,27 @@ export class GeneralParser extends AbstractParser {
     return parseChildren($('body'), $('body').text().length, 1, $('body').text().length);
   }
 
-  parseIndexChapter(doc: string) {
+  protected parseIndexChapter(doc: string) {
     const $ = cheerio.load(doc, { decodeEntities: false });
   
-    const next = $('body').find('a:contains("下一章")') || $('body').find('a:contains("下一页")');
-    const nextHref = next.attr("href");
-    const prev = $('body').find('a:contains("上一章")') || $('body').find('a:contains("上一页")');
-    const prevHref = prev.attr("href");
+    const nextHref = this.parseNextPage($)
+    const prevHref = this.parsePrevPage($)
     return { next: nextHref, prev: prevHref };
   }
+
+  protected parsePrevPage($: cheerio.Root) {
+    const prev = $('body').find('a:contains("上一章")') || $('body').find('a:contains("上一页")');
+    const prevHref = prev.attr("href");
+    return prevHref
+  }
+
+  protected parseNextPage($: cheerio.Root){
+    const next = $('body').find('a:contains("下一章")') || $('body').find('a:contains("下一页")');
+    const nextHref = next.attr("href");
+    return nextHref
+  }
   
-  parseTitle(doc: string) {
+  protected parseTitle(doc: string) {
     const $ = cheerio.load(doc, { decodeEntities: false });
   
     return $('title').text();

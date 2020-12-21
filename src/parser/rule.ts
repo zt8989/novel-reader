@@ -1,12 +1,9 @@
-import { AbstractParser } from './index';
-import fetch from 'node-fetch';
 import cheerio from 'cheerio';
 import { SourceType } from '../utils';
 import { parseRule } from './parser'
-const gbk = require('gbk.js');
-const debug = require('debug')('parser')
+import { GeneralParser } from './general';
 
-export class RuleParser extends AbstractParser {
+export class RuleParser extends GeneralParser {
   private source: SourceType
 
   constructor(source: SourceType) {
@@ -14,43 +11,42 @@ export class RuleParser extends AbstractParser {
     this.source = source
   }
 
-  fetchUrl(url: string) {
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
-    };
-  
-    return fetch(url, {
-      headers
-    })
-      .then(res => res.buffer())
-      .then(res => {
-        if (res.includes('gbk')) {
-          return gbk.decode(res);
-        }
-        return res.toString('utf-8');
-      });
-  }
   /**
    * 解析内容
    * @param doc
    */
-  parseContent(doc: string) {
-    const $ = cheerio.load(doc, { decodeEntities: false })
-    return parseRule(this.source.ruleBookContent, $) as string
+  protected parseContent(doc: string) {
+    if(this.source.ruleBookContent) {
+      const $ = cheerio.load(doc, { decodeEntities: false })
+      return parseRule(this.source.ruleBookContent, $('body')) as string
+    } else {
+      return super.parseContent(doc)
+    }
   }
 
-  parseIndexChapter(doc: string) {
-    const $ = cheerio.load(doc, { decodeEntities: false });
-  
-    const nextHref = parseRule(this.source.ruleNextPage, $) as string
-    const prevHref = parseRule(this.source.rulePrevPage, $) as string
-    return { next: nextHref, prev: prevHref };
+  protected parsePrevPage($: cheerio.Root) {
+    if(this.source.rulePrevPage) {
+      return parseRule(this.source.rulePrevPage, $('body')) as string
+    } else {
+      return super.parsePrevPage($)
+    }
   }
+
+  protected parseNextPage($: cheerio.Root){
+    if(this.source.ruleNextPage) {
+      return parseRule(this.source.ruleNextPage, $('body')) as string
+    } else {
+      return super.parseNextPage($)
+    }
+  } 
   
-  parseTitle(doc: string) {
-    const $ = cheerio.load(doc, { decodeEntities: false });
-    
-    return parseRule(this.source.ruleTitle, $) as string
+  protected parseTitle(doc: string) {
+    if(this.source.ruleBookTitle) {
+      const $ = cheerio.load(doc, { decodeEntities: false });
+      return parseRule(this.source.ruleBookTitle, $('body')) as string
+    } else {
+      return super.parseTitle(doc)
+    }
   }
 
 }

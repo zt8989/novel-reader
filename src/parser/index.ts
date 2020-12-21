@@ -9,13 +9,13 @@ export interface IParser {
 }
 
 export abstract class AbstractParser implements IParser{
-  abstract fetchUrl(url: string): Promise<string>
+  protected abstract fetchUrl(url: string): Promise<string>
 
-  abstract parseContent(doc: string): string
+  protected abstract parseContent(doc: string): string
 
-  abstract parseIndexChapter(doc: string): ParserReturnType["index"]
+  protected abstract parseIndexChapter(doc: string): ParserReturnType["index"]
 
-  abstract parseTitle(doc: string): string
+  protected abstract parseTitle(doc: string): string
 
   async parseNovel(url: string): Promise<ParserReturnType> {
     // console.log('fetching...', url)
