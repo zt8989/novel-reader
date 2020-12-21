@@ -13,6 +13,7 @@ import { IParser } from './parser/index';
 import { newLineSplit } from "./constants";
 import { BookType, DataStoreDocumentType } from "./type";
 import db from "./db";
+import ListPrompt from "inquirer/lib/prompts/list";
 
 export default class Reader extends Base{
   /** 阅读滚动行数 */
@@ -29,7 +30,6 @@ export default class Reader extends Base{
   private config: ConfigType
   // @ts-ignore
   private firstRun = true
-  private confirm: ConfirmPrompt
   private parser: IParser
   private book: BookType & DataStoreDocumentType
 
@@ -42,23 +42,49 @@ export default class Reader extends Base{
     this.parser = getParser(this.url)
     this.book = question.book
 
-    this.confirm = new ConfirmPrompt({
-          type: "confirm", 
-          name: "continue",
-          message: "是否继续上次的阅读？"
-        }, readLine, answers);
-
-    (this.confirm as any).onEnd = function onEnd(this: any, input: string) {
-      this.status = 'answered';
-  
-      var output = this.opt.filter(input);
-      this.render(output);
-  
-      this.done(output);
-    }
     // if (answers.continue === true && this.config.lastUrl) {
     //   this.url = this.config.lastUrl
     // }
+  }
+
+  getConfirmPrompt() {
+    const prompt = new ConfirmPrompt({
+      type: "confirm", 
+      name: "continue",
+      message: "是否继续上次的阅读？"
+    }, this.rl, {});
+
+    (prompt as any).onEnd = function onEnd(this: any, input: string) {
+      this.status = 'answered';
+
+      var output = this.opt.filter(input);
+      // this.render(output);
+
+      this.done(output);
+    };
+
+    (prompt as any).screen = this.screen
+
+    return prompt
+  }
+
+  async getListPrompt() {
+    const list = await db.books().find({})
+    const prompt = new ListPrompt({
+      type: "list", 
+      name: "chooseBook",
+      message: "选择你要阅读的书籍？",
+      choices: list as any
+    }, this.rl, {});
+
+    (prompt as any).onSubmit = function onSubmit(this: any, value: any) {
+      this.status = 'answered';
+      this.done(value);
+    };
+
+    (prompt as any).screen = this.screen
+
+    return prompt
   }
 
     /**
@@ -85,28 +111,48 @@ export default class Reader extends Base{
       share()
     ).forEach(this.onRefresh.bind(this))
 
+    events.keypress.pipe(
+      filter(({ key }) => key && key.name === 'l'),
+      share()
+    ).forEach(this.onListBook.bind(this))
+
     const next = (cont: Boolean = false) => {
       if(cont && this.config.lastUrl) {
         this.url = this.config.lastUrl
       }
       // Init the prompt
       cliCursor.hide();
-      this._read(this.url).then(() => {
-        this.firstRun = false
-      })
+      this._read(this.url)
     }
     if (this.firstRun && this.config.lastUrl) {
-      this.confirm.run().then((res: boolean) => {
+      this.getConfirmPrompt().run().then((res: boolean) => {
         // Init the prompt
         next(res)
       })
-    } else {
+    } else if (this.book) {
       next()
+    } else {
+      this.onListBook()
     }
+    this.firstRun = false
     return this;
   }
 
+  onListBook(){
+    this.getListPrompt().then(res => res.run()).then(res => {
+      return db.books().findOne({ name: res })
+    }).then((res: BookType) => {
+      if(res) {
+        return this._read(res.lastUrl)
+      } else {
+        console.error("未找到对应的书")
+        process.exit()
+      }
+    })
+  }
+
   onUpKey() {
+    if(this.loading) return
     if(this.isHead()) {
       if(this.index.prev){
         if(this.index.prev.startsWith("http")) {
@@ -130,6 +176,7 @@ export default class Reader extends Base{
   }
 
   onDownKey() {
+    if(this.loading) return
     if(!this.isEnd()) {
       this.count += this.line
       this.render()
@@ -170,7 +217,7 @@ export default class Reader extends Base{
     this.render();
     const res = await this.parser.parseNovel(url)
     if (this.book) {
-      console.log("save books")
+      // console.log("save books")
       await db.books().update({ _id: this.book._id }, { $set: { lastUrl: url }})
     }
     this.lines = wordWrap(res.content, this.lineNumber)

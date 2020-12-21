@@ -110,11 +110,7 @@ export async function bookAction(...rest: any[]){
       line = Number(argv.N)
     }
     let result = await db.books().findOne<BookType>({ name: argv.read })
-    if(result) {
-      await readFromBook(result, line)
-    } else {
-      console.error("未找到对应的书名")
-    }
+    await readFromBook(result, line)
     return
   }
 
@@ -124,6 +120,7 @@ export async function bookAction(...rest: any[]){
     return
   }
   
+  console.error("请输入正确的参数")
 }
 
 export async function sourceAction(...rest: any[]){
