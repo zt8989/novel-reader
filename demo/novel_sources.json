@@ -1,0 +1,14 @@
+[{
+    "bookSourceUrl": "https://www.biquwu.cc/",
+    "ruleBookContent": "<js>next($('#content').text())</js>",
+    "rulePrevPage": "<js>next($('a:contains(上一章)').attr('href'))</js>",
+    "ruleNextPage": "<js>next($('a:contains(下一章)').attr('href'))</js>",
+    "ruleBookTitle": "<js>next($('.content > h1').text())</js>"
+},
+{
+    "bookSourceUrl": "http://m.suixkan.com/",
+    "ruleBookContent": "class.con.0@textNodes&&class.con.1@textNodes&&class.con.1@textNodes",
+    "rulePrevPage": "class.prevUrl@text",
+    "ruleNextPage": "class.nextUrl@text",
+    "ruleBookTitle": "class.section@tag.h2@text##\\(.*\\)"
+}]

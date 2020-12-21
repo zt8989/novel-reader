@@ -15,35 +15,35 @@ export class RuleParser extends GeneralParser {
    * 解析内容
    * @param doc
    */
-  protected parseContent(doc: string) {
+  protected async parseContent(doc: string) {
     if(this.source.ruleBookContent) {
       const $ = cheerio.load(doc, { decodeEntities: false })
-      return parseRule(this.source.ruleBookContent, $('body')) as string
+      return parseRule(this.source.ruleBookContent, $('body'), $) as string
     } else {
       return super.parseContent(doc)
     }
   }
 
-  protected parsePrevPage($: cheerio.Root) {
+  protected async parsePrevPage($: cheerio.Root) {
     if(this.source.rulePrevPage) {
-      return parseRule(this.source.rulePrevPage, $('body')) as string
+      return parseRule(this.source.rulePrevPage, $('body'), $) as string
     } else {
       return super.parsePrevPage($)
     }
   }
 
-  protected parseNextPage($: cheerio.Root){
+  protected async parseNextPage($: cheerio.Root){
     if(this.source.ruleNextPage) {
-      return parseRule(this.source.ruleNextPage, $('body')) as string
+      return parseRule(this.source.ruleNextPage, $('body'), $) as string
     } else {
       return super.parseNextPage($)
     }
   } 
   
-  protected parseTitle(doc: string) {
+  protected async parseTitle(doc: string) {
     if(this.source.ruleBookTitle) {
       const $ = cheerio.load(doc, { decodeEntities: false });
-      return parseRule(this.source.ruleBookTitle, $('body')) as string
+      return parseRule(this.source.ruleBookTitle, $('body'), $) as string
     } else {
       return super.parseTitle(doc)
     }

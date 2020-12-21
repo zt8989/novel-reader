@@ -1,13 +1,13 @@
-import { AbstractParser } from './index';
+import { IParser, ParserReturnType } from './index';
 import fetch from 'node-fetch';
 import cheerio from 'cheerio';
 import { handleTextNodes } from './parser';
 const gbk = require('gbk.js');
 const debug = require('debug')('parser')
 
-export class GeneralParser extends AbstractParser {
+export class GeneralParser implements IParser {
 
-  protected fetchUrl(url: string) {
+  protected async fetchUrl(url: string) {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
     };
@@ -27,7 +27,7 @@ export class GeneralParser extends AbstractParser {
    * 解析内容
    * @param doc
    */
-  protected parseContent(doc: string) {
+  protected async parseContent(doc: string) {
     const $ = cheerio.load(doc, { decodeEntities: false });
   
     function parseChildren(parent: cheerio.Cheerio, size: number, slope: number, variance: number): string {
@@ -78,28 +78,37 @@ export class GeneralParser extends AbstractParser {
     return parseChildren($('body'), $('body').text().length, 1, $('body').text().length);
   }
 
-  protected parseIndexChapter(doc: string) {
+  protected async parseIndexChapter(doc: string) {
     const $ = cheerio.load(doc, { decodeEntities: false });
   
-    const nextHref = this.parseNextPage($)
-    const prevHref = this.parsePrevPage($)
+    const nextHref = await this.parseNextPage($)
+    const prevHref = await this.parsePrevPage($)
     return { next: nextHref, prev: prevHref };
   }
 
-  protected parsePrevPage($: cheerio.Root) {
+  protected async parsePrevPage($: cheerio.Root) {
     const prevHref = $('body').find('a:contains("上一章")').attr("href") || $('body').find('a:contains("上一页")').attr("href");
     return prevHref
   }
 
-  protected parseNextPage($: cheerio.Root){
+  protected async parseNextPage($: cheerio.Root){
     const nextHref = $('body').find('a:contains("下一章")').attr("href") || $('body').find('a:contains("下一页")').attr("href");
     return nextHref
   }
   
-  protected parseTitle(doc: string) {
+  protected async parseTitle(doc: string) {
     const $ = cheerio.load(doc, { decodeEntities: false });
   
     return $('title').text();
+  }
+
+  async parseNovel(url: string): Promise<ParserReturnType> {
+    // console.log('fetching...', url)
+    const doc = await this.fetchUrl(url);
+    const content = await this.parseContent(doc);
+    const index = await this.parseIndexChapter(doc);
+    const title = await this.parseTitle(doc);
+    return { index, content, title };
   }
 
 }

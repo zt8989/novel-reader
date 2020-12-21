@@ -1,12 +1,13 @@
 import { scriptEndTag, scriptStartTag, newLineSplit } from "../constants"
 import cheerio from 'cheerio'
+import fetch from 'node-fetch'
 
 
-function parseRule (rule: string, $: cheerio.Cheerio): cheerio.Cheerio | string {
+function parseRule (rule: string, $: cheerio.Cheerio, root: cheerio.Root): cheerio.Cheerio | string | Promise<string> {
   if (!rule) return ''
 
   if (rule.startsWith(scriptStartTag) && rule.endsWith(scriptEndTag)) {
-    return parseScript(rule.slice(scriptStartTag.length, rule.length - scriptEndTag.length), $)
+    return parseScript(rule.slice(scriptStartTag.length, rule.length - scriptEndTag.length), root)
   }
 
   const index = rule.indexOf("##")
@@ -68,9 +69,9 @@ function parseRule (rule: string, $: cheerio.Cheerio): cheerio.Cheerio | string 
   return ''
 }
 
-function parseScript(script: string, $: cheerio.Cheerio): string {
-  const func = new Function("$", script)
-  return func($)
+function parseScript(script: string, $: cheerio.Root): Promise<string> {
+  const func = new Function("$", "fetch", "next", script)
+  return new Promise((resovle) => func($, fetch, resovle))
 }
 
 function parseRegex (text: string, regex: string) {
