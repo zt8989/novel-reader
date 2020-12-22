@@ -2,9 +2,14 @@
 
 import program from 'commander'
 import { readAction, bookAction, sourceAction } from './main'
+const updateNotifier = require('update-notifier');
+
+const pkg = require('../package.json');
+
+updateNotifier({ pkg }).notify();
 
 program
-  .version(require("../package.json").version)
+  .version(pkg.version)
 
 program.command("read <url>")
   .description("read from url")
