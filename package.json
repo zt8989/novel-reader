@@ -1,6 +1,6 @@
 {
   "name": "@zt8989/novel-reader",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "terminal novel reader",
   "main": "dist/main.js",
   "scripts": {
