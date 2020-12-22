@@ -51,6 +51,10 @@ nvrd book -r [书名] -n 3 # 如果不填写书名或者查找不到会出现下
 
 * 只测试过笔趣阁相关网址，采集规则不一定适用其他网站
 
+## 书源规则
+
+[书源规则](./SOURCE.md)
+
 ## Issue 与 PR
 
 欢迎提交issue与merge request。
