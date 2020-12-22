@@ -6,10 +6,9 @@ import observe from "inquirer/lib/utils/events";
 import cliCursor from 'cli-cursor'
 import chalk from 'chalk'
 import { filter, share } from 'rxjs/operators'
-import { getParser } from "./parser";
+import { parseNovel } from "./parser";
 import { ConfigType, writeConfigSync, wordWrap } from "./utils";
 import ConfirmPrompt from "inquirer/lib/prompts/confirm";
-import { IParser } from './parser/index';
 import { newLineSplit } from "./constants";
 import { BookType, DataStoreDocumentType } from "./type";
 import db from "./db";
@@ -30,7 +29,6 @@ export default class Reader extends Base{
   private config: ConfigType
   // @ts-ignore
   private firstRun = true
-  private parser: IParser
   private book: BookType & DataStoreDocumentType
 
   constructor(question: any, readLine: ReadLine, answers: inquirer.Answers) {
@@ -39,7 +37,6 @@ export default class Reader extends Base{
     this.url = question.url
     this.line = question.line
     this.config = question.config
-    this.parser = getParser(this.url)
     this.book = question.book
 
     // if (answers.continue === true && this.config.lastUrl) {
@@ -215,7 +212,7 @@ export default class Reader extends Base{
     this.url = url
     this.loading = true
     this.render();
-    const res = await this.parser.parseNovel(url)
+    const res = await parseNovel(url)
     if (this.book) {
       // console.log("save books")
       await db.books().update({ _id: this.book._id }, { $set: { lastUrl: url }})

@@ -1,4 +1,4 @@
-import { IParser, ParserReturnType } from './index';
+import { IParser } from './index';
 import fetch from 'node-fetch';
 import cheerio from 'cheerio';
 import { handleTextNodes } from './parser';
@@ -102,7 +102,7 @@ export class GeneralParser implements IParser {
     return $('title').text();
   }
 
-  async parseNovel(url: string): Promise<ParserReturnType> {
+  parseNovel = async (url: string) => {
     // console.log('fetching...', url)
     const doc = await this.fetchUrl(url);
     const content = await this.parseContent(doc);

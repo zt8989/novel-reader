@@ -1,12 +1,16 @@
 import { GeneralParser } from './parser/general';
 import { readSourcesSync } from './utils';
 import { RuleParser } from './parser/rule';
+import { IParser } from './parser/index';
 
-export function getParser(url: string) {
+export function parseNovel(url: string) {
   const sources = readSourcesSync()
   const source = sources.find(source => url.startsWith(source.bookSourceUrl))
+  let parser: IParser
   if (source) {
-    return new RuleParser(source)
+    parser =  new RuleParser(source)
+  } else {
+    parser = new GeneralParser()
   }
-  return new GeneralParser()
+  return parser.parseNovel(url)
 }

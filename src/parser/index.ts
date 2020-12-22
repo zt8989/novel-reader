@@ -5,5 +5,5 @@ export type ParserReturnType = {
 }
 
 export interface IParser {
-  parseNovel(url: string): Promise<ParserReturnType>
+  parseNovel: (url: string) => Promise<ParserReturnType>
 }
