@@ -1,8 +1,9 @@
 import Reader from "./reader"
 import inquirer from "inquirer";
-import { readConfig } from "./utils";
+import { readConfig, readSources, SourceType, writeConfig, writeSources } from "./utils";
 import db from './db'
 import { BookType } from "./type";
+import { getBooks, getSources, login, setBooks, setSources } from "./api";
 
 
 export async function readAction(...rest: any[]) {
@@ -158,4 +159,57 @@ export async function sourceAction(...rest: any[]){
     return
   }
   
+}
+
+export async function configAction(...rest: any[]) {
+  let argv = rest[rest.length - 1]
+  if(argv.api && rest[0] && rest[0].startsWith('http')) {
+    const config = await readConfig()
+    config.baseUrl = rest[0]
+    await writeConfig(config)
+    console.log("保存api成功", rest[0])
+    return
+  }
+
+  if(argv.up) {
+    const books = await db.books().find({}) as BookType[]
+    await setBooks(books)
+    const sources = await readSources()
+    const res = await setSources(sources)
+    console.log("上传成功", res)
+    return
+  }
+
+  if(argv.down) {
+    const books = await getBooks()
+    for(let book of books) {
+      await db.books().update({ name: book.name }, { $set: { lastUrl: book.lastUrl } })
+    }
+    const sources = await getSources()
+    await writeSources(sources)
+    console.log("下载成功")
+    return
+  }
+  
+}
+
+export function loginAction(...rest: any[]) {
+  inquirer.prompt([
+    { type: 'input', 
+      name: 'username',
+      validate: val => !!String.prototype.trim.apply(val)
+    },
+    { type: 'password', 
+      name: 'password',
+      validate: val => !!String.prototype.trim.apply(val)
+    },
+  ]).then(async (answers: { username: string, password: string }) => {
+    const token = await login(answers)
+    const config = await readConfig()
+    config.token = token
+    await writeConfig(config)
+    console.log("登录成功")
+  }).catch(e => {
+    console.error(e.message ? e.message : e)
+  })
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import program from 'commander'
-import { readAction, bookAction, sourceAction } from './main'
+import { readAction, bookAction, sourceAction, configAction, loginAction } from './main'
 const updateNotifier = require('update-notifier');
 
 const pkg = require('../package.json');
@@ -36,6 +36,13 @@ program.command("source")
 
 program.command("config")
   .description("config manage")
-  .option("-n, --number", "set line numer")
+  .option("-a, --api", "set api url")
+  .option("-u, --up", "将数据上传到服务器")
+  .option("-d, --down", "将数据下载到本地")
+  .action(configAction)
+
+program.command("login")
+  .description("login")
+  .action(loginAction)
 
 program.parse(process.argv)

@@ -14,7 +14,7 @@ let novelsIns: Datastore | null = null
 
 let sourcesIns: Datastore | null = null
 
-let configIns: Datastore | null = null
+let usersIns: Datastore | null = null
 
 export default {
   sources: () => { 
@@ -29,10 +29,10 @@ export default {
     }
     return novelsIns
   },
-  config: () => {
-    if (configIns === null) {
-      configIns = dbFactory('config')
+  users: () => {
+    if (usersIns === null) {
+      usersIns = dbFactory('users')
     }
-    return configIns
+    return usersIns
   },
 }

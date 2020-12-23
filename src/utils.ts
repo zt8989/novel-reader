@@ -17,7 +17,9 @@ const sourcesFile = path.resolve(nvrdDir, "novel_sources.json")
 export type ConfigType = {
     lastUrl?: string
     lastLine?: number
-    line?: number
+    line?: number,
+    baseUrl?: string,
+    token?: string
 }
 
 export type SourceType = {
