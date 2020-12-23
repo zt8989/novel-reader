@@ -18,7 +18,7 @@ const request = async (url: string, options: RequestInit, auth = true) => {
     options.headers['Authorization'] = 'Bearer ' + config.token
   }
   // console.log(options)
-  console.log(options.method || "get", url, options)
+  // console.log(options.method || "get", url, options)
 
   const baseUrl = config.baseUrl
   const res = await fetch(baseUrl + url, options).then(res => res.json())
