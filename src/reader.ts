@@ -7,12 +7,13 @@ import cliCursor from 'cli-cursor'
 import chalk from 'chalk'
 import { filter, share } from 'rxjs/operators'
 import { parseNovel } from "./parser";
-import { ConfigType, writeConfigSync, wordWrap } from "./utils";
+import { writeConfigSync, wordWrap } from "./utils";
 import ConfirmPrompt from "inquirer/lib/prompts/confirm";
 import { newLineSplit } from "./constants";
-import { BookType, DataStoreDocumentType } from "./type";
+import { BookType, ConfigType, DataStoreDocumentType } from "./type";
 import db from "./db";
 import ListPrompt from "inquirer/lib/prompts/list";
+import { setBook } from "./api";
 
 export default class Reader extends Base{
   /** 阅读滚动行数 */
@@ -140,6 +141,7 @@ export default class Reader extends Base{
       return db.books().findOne({ name: res })
     }).then((res: BookType) => {
       if(res) {
+        this.book = res as any
         return this._read(res.lastUrl)
       } else {
         console.error("未找到对应的书")
@@ -215,7 +217,14 @@ export default class Reader extends Base{
     const res = await parseNovel(url)
     if (this.book) {
       // console.log("save books")
-      await db.books().update({ _id: this.book._id }, { $set: { lastUrl: url }})
+      db.books().update({ _id: this.book._id }, { $set: { lastUrl: url }})
+      this.config.token && setBook({ name: this.book.name, lastUrl: url }).catch(e => {
+        if(e.code === 401) {
+          delete this.config.token
+        } else {
+          throw e
+        }
+      })
     }
     this.lines = wordWrap(res.content, this.lineNumber)
     // if (this.firstRun && (this.config.lastLine || 0) < this.lines.length) {

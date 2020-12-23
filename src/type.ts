@@ -1,6 +1,5 @@
 export type BookType = {
   name: string
-  url: string
   lastUrl: string
 } 
 
@@ -11,5 +10,9 @@ export type DataStoreDocumentType = {
 }
 
 export type ConfigType = {
-  line: number
+  lastUrl?: string
+  lastLine?: number
+  line?: number,
+  baseUrl?: string,
+  token?: string
 }

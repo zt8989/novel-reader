@@ -4,6 +4,7 @@ import fs from 'fs'
 import { promisify } from 'util'
 import { newLineSplit } from "./constants"
 import mkdirp from 'mkdirp'
+import { ConfigType } from "./type"
 
 const writeFile = promisify(fs.writeFile)
 const readFile = promisify(fs.readFile)
@@ -13,14 +14,6 @@ const nvrdDir = path.resolve(os.homedir(), ".nvrd")
 const historyFile = path.resolve(nvrdDir, ".novel_history")
 
 const sourcesFile = path.resolve(nvrdDir, "novel_sources.json")
-
-export type ConfigType = {
-    lastUrl?: string
-    lastLine?: number
-    line?: number,
-    baseUrl?: string,
-    token?: string
-}
 
 export type SourceType = {
     bookSourceUrl: string,
