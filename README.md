@@ -32,6 +32,9 @@ nvrd book -a <书名> <章节地址> #添加书本
 nvrd book -s <书名> <章节地址> #修改书名地址
 nvrd book --remove <书名> #删除书名
 nvrd book -r [书名] -n 3 # 如果不填写书名或者查找不到会出现下拉列表, -n 3表示显示3行，默认为1
+
+nvrd login -a <url> # 登录并设置api地址
+nvrd login # 登录
 ```
 
 ## 支持平台
