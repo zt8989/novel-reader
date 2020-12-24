@@ -35,6 +35,8 @@ nvrd book -r [书名] -n 3 # 如果不填写书名或者查找不到会出现下
 
 nvrd login -a <url> # 登录并设置api地址
 nvrd login # 登录
+nvrd book -u #强制上传书籍目录
+nvrd book -d #强制下载书籍目录
 ```
 
 ## 支持平台

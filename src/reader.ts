@@ -38,6 +38,7 @@ export default class Reader extends Base{
     this.url = question.url
     this.line = question.line
     this.config = question.config
+    // console.log(this.config)
     this.book = question.book
 
     // if (answers.continue === true && this.config.lastUrl) {

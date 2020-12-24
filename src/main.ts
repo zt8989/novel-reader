@@ -3,7 +3,7 @@ import inquirer from "inquirer";
 import { readConfig, readSources, writeConfig, writeSources } from "./utils";
 import db from './db'
 import { BookType, ConfigType } from "./type";
-import { checkLogin, getBooks, getSources, login, setBooks, setSources, syncBooks } from "./api";
+import { checkLogin, getBooks, getSources, login, removeBook, setBooks, setSources, syncBooks } from "./api";
 
 
 
@@ -120,7 +120,40 @@ export async function bookAction(...rest: any[]){
         } 
         throw e
       })
-      books = await syncBooks(books as any)
+      let data = await syncBooks(books as any) as (BookType & { _id: string, deleted: boolean, updatedAt: string })[]
+
+      // 过滤出所有已删除的
+      let deleteds = data.filter(x => x.deleted)
+
+      // 过滤出所有未删除的
+      data = data.filter(x => !x.deleted)
+
+      // 需要添加的
+      const inserts = data.filter(x => !books.some(b => b.name === x.name))
+
+      // 需要更新的
+      const updates = data.filter(x => {
+        const book = books.find(b => b.name === x.name)
+        return book && (new Date(x.updatedAt).getTime()) > (book.updatedAt?.getTime() ?? 0)
+      })
+    
+      // const deletes = books.filter(b => !data.some(x => x.name === b.name))
+    
+      for (let book of inserts) {
+        const { name, lastUrl } = book 
+        await db.books().insert({ name, lastUrl })
+      }
+    
+    
+      for (let book of updates) {
+        const { _id, name, updatedAt, ...rest } = book
+        await db.books().update({ name }, { $set: rest })
+      }
+
+      for(let book of deleteds) {
+        await db.books().remove({ name: book.name }, {})
+      }
+
     }
 
     const result = books.find(x => x.name == argv.read) as BookType
@@ -131,6 +164,17 @@ export async function bookAction(...rest: any[]){
 
   if(argv.remove) {
     await db.books().remove({ name: argv.remove }, {})
+    let config = await readConfig()
+    if (config.token) {
+      await checkLogin().catch(e => {
+        if(e.code === 401) {
+          delete config.token
+          e.message = "登录已失效"
+        } 
+        throw e
+      })
+      await removeBook({ name: argv.remove })
+    }
     console.error("删除成功")
     return
   }
@@ -209,10 +253,16 @@ export async function configAction(...rest: any[]) {
 
 export async function loginAction(...rest: any[]) {
   let argv = rest[rest.length - 1]
+  const config = await readConfig()
+
   if(argv.api && rest[0] && rest[0].startsWith('http')) {
-    const config = await readConfig()
     config.baseUrl = rest[0]
     await writeConfig(config)
+  }
+
+  if(!config.baseUrl) {
+    console.error("请使用nvrd login -a <url>登录")
+    return
   }
 
   inquirer.prompt([

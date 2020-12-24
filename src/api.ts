@@ -56,6 +56,10 @@ export const setBook = (data: BookType) => {
   return request('/books', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)})
 }
 
+export const removeBook = (data: { name: string }) => {
+  return request('/books', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)})
+}
+
 export const getSources = (): Promise<SourceType[]> => {
   return request('/sources', {} )
 }
