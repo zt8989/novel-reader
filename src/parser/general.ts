@@ -17,7 +17,7 @@ export class GeneralParser implements IParser {
     })
       .then(res => res.buffer())
       .then(res => {
-        if (res.includes('gbk')) {
+        if (res.includes('gbk') || res.includes('gb2312')) {
           return gbk.decode(res);
         }
         return res.toString('utf-8');
