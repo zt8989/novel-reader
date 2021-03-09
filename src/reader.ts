@@ -14,6 +14,8 @@ import { BookType, ConfigType, DataStoreDocumentType } from "./type";
 import db from "./db";
 import ListPrompt from "inquirer/lib/prompts/list";
 import { setBook } from "./api";
+import { ParserReturnType } from "./parser/index";
+import CacheManager from "./cache";
 
 export default class Reader extends Base{
   /** 阅读滚动行数 */
@@ -31,6 +33,7 @@ export default class Reader extends Base{
   // @ts-ignore
   private firstRun = true
   private book: BookType & DataStoreDocumentType
+  private cacheManageer: CacheManager;
 
   constructor(question: any, readLine: ReadLine, answers: inquirer.Answers) {
     super(question, readLine, answers)
@@ -40,6 +43,8 @@ export default class Reader extends Base{
     this.config = question.config
     // console.log(this.config)
     this.book = question.book
+
+    this.cacheManageer = new CacheManager()
 
     // if (answers.continue === true && this.config.lastUrl) {
     //   this.url = this.config.lastUrl
@@ -175,6 +180,15 @@ export default class Reader extends Base{
     }
   }
 
+  getAbsoluteUrl(url: string) {
+    if(url.startsWith("http")) {
+      return url
+    } else {
+      const urlObj = new URL(url, this.url)
+      return urlObj.href
+    }
+  }
+
   onDownKey() {
     if(this.loading) return
     if(!this.isEnd()) {
@@ -182,12 +196,7 @@ export default class Reader extends Base{
       this.render()
     } else {
       if(this.index.next){
-        if(this.index.next.startsWith("http")) {
-          this._read(this.index.next)
-        } else {
-          const urlObj = new URL(this.index.next, this.url)
-          this._read(urlObj.href)
-        }
+        this._read(this.getAbsoluteUrl(this.index.next))
       } else {
         this.title = '没有下一页了'
         this.render()
@@ -211,11 +220,27 @@ export default class Reader extends Base{
     }
   }
 
+  
+
+  private parseNovel(url: string): Promise<ParserReturnType>{
+    let item = this.cacheManageer.getItem(url)
+    if(item) {
+      return item
+    } else {
+      let value = parseNovel(url)
+      this.cacheManageer.setItem(url, value)
+      return value
+    }
+  }
+
   private async _read(url: string){
     this.url = url
     this.loading = true
     this.render();
-    const res = await parseNovel(url)
+    const res = await this.parseNovel(url)
+    if(res.index.next) {
+      this.parseNovel(this.getAbsoluteUrl(res.index.next))
+    }
     if (this.book) {
       // console.log("save books")
       db.books().update({ _id: this.book._id }, { $set: { lastUrl: url }})
