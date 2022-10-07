@@ -1,7 +1,8 @@
-import { IParser } from './index';
+import { IParser, ParserOptions } from './index';
 import fetch from 'node-fetch';
 import cheerio from 'cheerio';
 import { handleTextNodes } from './parser';
+import { ParseOptions } from 'querystring';
 const gbk = require('gbk.js');
 const debug = require('debug')('parser')
 
@@ -27,7 +28,7 @@ export class GeneralParser implements IParser {
    * 解析内容
    * @param doc
    */
-  protected async parseContent(doc: string) {
+  protected async parseContent(doc: string, raw = false) {
     const $ = cheerio.load(doc, { decodeEntities: false });
   
     function parseChildren(parent: cheerio.Cheerio, size: number, slope: number, variance: number): string {
@@ -68,7 +69,7 @@ export class GeneralParser implements IParser {
         if (tempVariance > 100) {
           return parseChildren(maxChildren.element, maxChildren.size, maxChildren.slope, tempVariance);
         } else {
-         return handleTextNodes(parent)
+         return raw ? parent.html()! : handleTextNodes(parent)
         }
       } else {
         return "";
@@ -102,10 +103,10 @@ export class GeneralParser implements IParser {
     return $('title').text();
   }
 
-  parseNovel = async (url: string) => {
+  parseNovel = async (url: string, options: ParserOptions) => {
     // console.log('fetching...', url)
     const doc = await this.fetchUrl(url);
-    const content = await this.parseContent(doc);
+    const content = await this.parseContent(doc, options.raw);
     const index = await this.parseIndexChapter(doc);
     const title = await this.parseTitle(doc);
     return { index, content, title };

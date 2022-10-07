@@ -4,6 +4,10 @@ export type ParserReturnType = {
   title: string
 }
 
+export type ParserOptions = {
+  raw?: boolean
+}
+
 export interface IParser {
-  parseNovel: (url: string) => Promise<ParserReturnType>
+  parseNovel: (url: string, options: ParserOptions) => Promise<ParserReturnType>
 }

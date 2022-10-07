@@ -3,7 +3,7 @@ import { readSourcesSync } from './utils';
 import { RuleParser } from './parser/rule';
 import { IParser } from './parser/index';
 
-export function parseNovel(url: string) {
+export function parseNovel(url: string, raw = false) {
   const sources = readSourcesSync()
   const source = sources.find(source => url.startsWith(source.bookSourceUrl))
   let parser: IParser
@@ -12,5 +12,5 @@ export function parseNovel(url: string) {
   } else {
     parser = new GeneralParser()
   }
-  return parser.parseNovel(url)
+  return parser.parseNovel(url, { raw })
 }
