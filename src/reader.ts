@@ -127,7 +127,7 @@ export default class Reader extends Base{
     events.keypress.pipe(
       filter(
         ({ key }) =>
-          key.sequence === 'J'
+          key.name === 'n' 
       ),
       share()
     ).forEach(this.onPageNext.bind(this))
@@ -135,7 +135,7 @@ export default class Reader extends Base{
     events.keypress.pipe(
       filter(
         ({ key }) =>
-          key.sequence === 'K'
+          key.name === 'm'
       ),
       share()
     ).forEach(this.onPageUp.bind(this))
