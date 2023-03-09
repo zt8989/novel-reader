@@ -17,6 +17,7 @@ import { setBook } from "./api";
 import { ParserReturnType } from "./parser/index";
 import CacheManager from "./cache";
 
+const HISTORY_STACK = 5
 export default class Reader extends Base{
   /** 阅读滚动行数 */
   private count = 0
@@ -24,7 +25,6 @@ export default class Reader extends Base{
   private line = 1
   private lineNumber = 40
   private lines: string[] = []
-  private index: { next?: string, prev?: string } = { }
   private url: string = ""
   private title: string = ""
   private loading = true
@@ -34,6 +34,25 @@ export default class Reader extends Base{
   private firstRun = true
   private book: BookType & DataStoreDocumentType
   private cacheManageer: CacheManager;
+
+  private list: (string | undefined)[] = new Array(HISTORY_STACK)
+  private currentPos = -1
+
+  setNext(url?: string){
+    this.list[(this.currentPos + 1) % HISTORY_STACK] = url
+  }
+
+  next(){
+    this.currentPos+=1
+    return this.list[this.currentPos % HISTORY_STACK]
+  }
+
+  prev(){
+    if(this.currentPos > 0){
+      this.currentPos -= 1
+      return this.list[this.currentPos % HISTORY_STACK]
+    }
+  }
 
   constructor(question: any, readLine: ReadLine, answers: inquirer.Answers) {
     super(question, readLine, answers)
@@ -104,6 +123,22 @@ export default class Reader extends Base{
       .forEach(this.onUpKey.bind(this));
     events.normalizedDownKey
       .forEach(this.onDownKey.bind(this));
+
+    events.keypress.pipe(
+      filter(
+        ({ key }) =>
+          key.sequence === 'J'
+      ),
+      share()
+    ).forEach(this.onPageNext.bind(this))
+  
+    events.keypress.pipe(
+      filter(
+        ({ key }) =>
+          key.sequence === 'K'
+      ),
+      share()
+    ).forEach(this.onPageUp.bind(this))
     
     events.keypress.pipe(
       filter(({ key }) => key && key.name === 'b'),
@@ -126,7 +161,8 @@ export default class Reader extends Base{
       }
       // Init the prompt
       cliCursor.hide();
-      this._read(this.url)
+      this.setNext(this.url)
+      this._read(this.next()!)
     }
     if (this.firstRun && this.config.lastUrl) {
       this.getConfirmPrompt().run().then((res: boolean) => {
@@ -145,7 +181,7 @@ export default class Reader extends Base{
   onListBook(){
     this.getListPrompt().then(res => res.run()).then(res => {
       return db.books().findOne({ name: res })
-    }).then((res: BookType) => {
+    }).then((res: any) => {
       if(res) {
         this.book = res as any
         return this._read(res.lastUrl)
@@ -156,20 +192,25 @@ export default class Reader extends Base{
     })
   }
 
+  onPageUp(){
+    const prev = this.prev()
+    if(prev){
+      if(prev.startsWith("http")) {
+        this._read(prev)
+      } else {
+        const urlObj = new URL(prev, this.url)
+        this._read(urlObj.href)
+      }
+    } else {
+      this.title = '没有上一页了'
+      this.render()
+    }
+  }
+
   onUpKey() {
     if(this.loading) return
     if(this.isHead()) {
-      if(this.index.prev){
-        if(this.index.prev.startsWith("http")) {
-          this._read(this.index.prev)
-        } else {
-          const urlObj = new URL(this.index.prev, this.url)
-          this._read(urlObj.href)
-        }
-      } else {
-        this.title = '没有上一页了'
-        this.render()
-      }
+      this.onPageUp()
     } else {
       if(this.count < this.line) {
         this.count = 0
@@ -189,18 +230,23 @@ export default class Reader extends Base{
     }
   }
 
+  onPageNext(){
+    const next = this.next()
+    if(next){
+      this._read(this.getAbsoluteUrl(next))
+    } else {
+      this.title = '没有下一页了'
+      this.render()
+    }
+  }
+
   onDownKey() {
     if(this.loading) return
     if(!this.isEnd()) {
       this.count += this.line
       this.render()
     } else {
-      if(this.index.next){
-        this._read(this.getAbsoluteUrl(this.index.next))
-      } else {
-        this.title = '没有下一页了'
-        this.render()
-      }
+      this.onPageNext()
     }
   }
 
@@ -258,7 +304,7 @@ export default class Reader extends Base{
     // } else {
       this.count = 0
     // }
-    this.index = res.index
+    this.setNext(res.index.next)
     this.title = res.title
     this.loading = false
     this.render()
